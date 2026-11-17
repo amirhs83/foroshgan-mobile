@@ -58,3 +58,6 @@ server.log
 /db/
 /download/
 /upload/
+
+# allow env sample file
+!.env.example
