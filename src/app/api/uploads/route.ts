@@ -26,6 +26,25 @@ export async function POST(req: NextRequest) {
 
   const ext = isPng ? '.png' : isJpg ? '.jpg' : '.webp'
   const name = `${crypto.randomUUID()}${ext}`
+
+  // Production (Vercel): filesystem is read-only — persist to Vercel Blob.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { put } = await import('@vercel/blob')
+      const blob = await put(`uploads/${name}`, buf, {
+        access: 'public',
+        contentType: file.type,
+        addRandomSuffix: false,
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      })
+      return NextResponse.json({ url: blob.url }, { status: 201 })
+    } catch (e) {
+      console.error('blob upload failed:', e)
+      return jsonError('آپلود به فضای ابری ناموفق بود')
+    }
+  }
+
+  // Local dev fallback: write to public/uploads on disk.
   const dir = path.join(process.cwd(), 'public', 'uploads')
   await mkdir(dir, { recursive: true })
   await writeFile(path.join(dir, name), buf)
